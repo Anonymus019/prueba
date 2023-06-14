@@ -1,0 +1,78 @@
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+def preprocess_image(image):
+    # Redimensionar la imagen a un tamaño estándar si es necesario
+    resized_image = cv2.resize(image, (32, 32))
+
+    # Convertir la imagen a escala de grises
+    grayscale_image = cv2.cvtColor(resized_image, cv2.COLOR_BGR2GRAY)
+
+    # Aumentar el contraste de la imagen
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    enhanced_image = clahe.apply(grayscale_image)
+
+    # Ajustar el brillo de la imagen
+    alpha = 1.5  # Factor de ajuste de brillo
+    adjusted_image = cv2.convertScaleAbs(enhanced_image, alpha=alpha)
+
+    # Aplanar la imagen en un vector unidimensional
+    flattened_image = adjusted_image.flatten()
+
+    # Rellenar con ceros si la longitud es menor que 324
+    padded_image = np.pad(flattened_image, (0, max(0, 324 - len(flattened_image))), 'constant')
+
+    return padded_image
+
+def create_patterns(images, orientations):
+    patterns = []
+    for image, orientation in zip(images, orientations):
+        processed_image = preprocess_image(image)
+        pattern = np.concatenate((processed_image, orientation), axis=None)
+        patterns.append(pattern)
+    return patterns
+
+# Datos de prueba
+# Supongamos que tienes dos imágenes y sus orientaciones correspondientes
+
+# Cargar imágenes desde la base de datos
+image1 = cv2.imread('1.jpg')  # Reemplaza 'imagen1.jpg' con la ruta de tu imagen
+image2 = cv2.imread('2.jpg')  # Reemplaza 'imagen2.jpg' con la ruta de tu imagen
+
+# Cargar las orientaciones correspondientes
+orientation1 = [0, 1, 0]  # Orientación de la imagen 1
+orientation2 = [1, 0, 1]  # Orientación de la imagen 2
+
+# Crear listas de imágenes y orientaciones
+images = [image1, image2]
+orientations = [orientation1, orientation2]
+
+# Crear los patrones de entrada y sus representativos en orientaciones
+patterns = create_patterns(images, orientations)
+
+# patterns contendrá los patrones de entrada en una dimensión de 1x324
+
+# Visualizar imágenes originales y después del preprocesamiento
+fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(10, 8))
+
+# Mostrar la primera imagen original
+axes[0, 0].imshow(cv2.cvtColor(image1, cv2.COLOR_BGR2RGB))
+axes[0, 0].set_title('Imagen 1 Original')
+
+# Mostrar la segunda imagen original
+axes[0, 1].imshow(cv2.cvtColor(image2, cv2.COLOR_BGR2RGB))
+axes[0, 1].set_title('Imagen 2 Original')
+
+# Mostrar la primera imagen después del preprocesamiento
+processed_image1 = preprocess_image(image1)
+axes[1, 0].imshow(processed_image1.reshape(32, 32), cmap='gray')
+axes[1, 0].set_title('Imagen 1 Después del preprocesamiento')
+
+# Mostrar la segunda imagen después del preprocesamiento
+processed_image2 = preprocess_image(image2)
+axes[1, 1].imshow(processed_image2.reshape(32, 32), cmap='gray')
+axes[1, 1].set_title('Imagen 2 Después del preprocesamiento')
+
+plt.tight_layout()
+plt.show()
